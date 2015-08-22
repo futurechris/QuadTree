@@ -3,6 +3,11 @@ using System.Collections.Generic;
 
 namespace QuadTree
 {
+    /// <summary>
+    /// A quad tree where leaf nodes contain a quad and a unique instance of T.
+    /// For example, if you are developing a game, you might use QuadTree<GameObject>
+    /// for collisions, or QuadTree<int> if you just want to populate it with IDs.
+    /// </summary>
     public class QuadTree<T>
     {
         internal static Stack<Branch> branchPool = new Stack<Branch>();
@@ -12,22 +17,44 @@ namespace QuadTree
         internal int splitCount;
         internal Dictionary<T, Leaf> leafLookup = new Dictionary<T, Leaf>();
 
+        /// <summary>
+        /// Creates a new QuadTree.
+        /// </summary>
+        /// <param name="splitCount">How many leaves a branch can hold before it splits into sub-branches.</param>
+        /// <param name="region">The region that your quadtree occupies, all inserted quads should fit into this.</param>
         public QuadTree(int splitCount, ref Quad region)
         {
             this.splitCount = splitCount;
             root = CreateBranch(this, null, ref region);
         }
+        /// <summary>
+        /// Creates a new QuadTree.
+        /// </summary>
+        /// <param name="splitCount">How many leaves a branch can hold before it splits into sub-branches.</param>
+        /// <param name="region">The region that your quadtree occupies, all inserted quads should fit into this.</param>
         public QuadTree(int splitCount, Quad region)
             : this(splitCount, ref region)
         {
 
         }
+        /// <summary>
+        /// Creates a new QuadTree.
+        /// </summary>
+        /// <param name="splitCount">How many leaves a branch can hold before it splits into sub-branches.</param>
+        /// <param name="x">X position of the region.</param>
+        /// <param name="y">Y position of the region.</param>
+        /// <param name="width">Width of the region.</param>
+        /// <param name="height">Height of the region.</param>
         public QuadTree(int splitCount, float x, float y, float width, float height)
             : this(splitCount, new Quad(x, y, x + width, y + height))
         {
 
         }
 
+        /// <summary>
+        /// Clear the QuadTree. This will remove all leaves and branches. If you have a lot of moving objects,
+        /// you probably want to call Clear() every frame, and re-insert every object. Branches and leaves are pooled.
+        /// </summary>
         public void Clear()
         {
             root.Clear();
@@ -35,6 +62,10 @@ namespace QuadTree
             leafLookup.Clear();
         }
 
+        /// <summary>
+        /// QuadTree internally keeps pools of Branches and Leaves. If you want to clear these to clean up memory,
+        /// you can call this function. Most of the time you'll want to leave this alone, though.
+        /// </summary>
         public static void ClearPools()
         {
             branchPool = new Stack<Branch>();
@@ -42,6 +73,11 @@ namespace QuadTree
             Branch.tempPool = new Stack<List<Leaf>>();
         }
 
+        /// <summary>
+        /// Insert a new leaf node into the QuadTree.
+        /// </summary>
+        /// <param name="value">The leaf value.</param>
+        /// <param name="quad">The leaf size.</param>
         public void Insert(T value, ref Quad quad)
         {
             Leaf leaf;
@@ -52,16 +88,35 @@ namespace QuadTree
             }
             root.Insert(leaf);
         }
+        /// <summary>
+        /// Insert a new leaf node into the QuadTree.
+        /// </summary>
+        /// <param name="value">The leaf value.</param>
+        /// <param name="quad">The leaf quad.</param>
         public void Insert(T value, Quad quad)
         {
             Insert(value, ref quad);
         }
+        /// <summary>
+        /// Insert a new leaf node into the QuadTree.
+        /// </summary>
+        /// <param name="value">The leaf value.</param>
+        /// <param name="x">X position of the leaf.</param>
+        /// <param name="y">Y position of the leaf.</param>
+        /// <param name="width">Width of the leaf.</param>
+        /// <param name="height">Height of the leaf.</param>
         public void Insert(T value, float x, float y, float width, float height)
         {
             var quad = new Quad(x, y, x + width, y + height);
             Insert(value, ref quad);
         }
 
+        /// <summary>
+        /// Find all values contained in the specified area.
+        /// </summary>
+        /// <returns>True if any values were found.</returns>
+        /// <param name="quad">The area to search.</param>
+        /// <param name="values">A list to populate with the results. If null, this function will create the list for you.</param>
         public bool SearchArea(ref Quad quad, ref List<T> values)
         {
             if (values != null)
@@ -71,16 +126,37 @@ namespace QuadTree
             root.SearchQuad(ref quad, values);
             return values.Count > 0;
         }
+        /// <summary>
+        /// Find all values contained in the specified area.
+        /// </summary>
+        /// <returns>True if any values were found.</returns>
+        /// <param name="quad">The area to search.</param>
+        /// <param name="values">A list to populate with the results. If null, this function will create the list for you.</param>
         public bool SearchArea(Quad quad, ref List<T> values)
         {
             return SearchArea(ref quad, ref values);
         }
+        /// <summary>
+        /// Find all values contained in the specified area.
+        /// </summary>
+        /// <returns>True if any values were found.</returns>
+        /// <param name="x">X position to search.</param>
+        /// <param name="y">Y position to search.</param>
+        /// <param name="width">Width of the search area.</param>
+        /// <param name="height">Height of the search area.</param>
+        /// <param name="values">A list to populate with the results. If null, this function will create the list for you.</param>
         public bool SearchArea(float x, float y, float width, float height, ref List<T> values)
         {
             var quad = new Quad(x, y, x + width, y + height);
             return SearchArea(ref quad, ref values);
         }
 
+        /// <summary>
+        /// Find all other values whose areas are overlapping the specified value.
+        /// </summary>
+        /// <returns>True if any collisions were found.</returns>
+        /// <param name="value">The value to check collisions against.</param>
+        /// <param name="values">A list to populate with the results. If null, this function will create the list for you.</param>
         public bool FindCollisions(T value, ref List<T> values)
         {
             if (values != null)
@@ -119,6 +195,9 @@ namespace QuadTree
             return false;
         }
 
+        /// <summary>
+        /// Count how many branches are in the QuadTree.
+        /// </summary>
         public int CountBranches()
         {
             int count = 0;
@@ -273,6 +352,9 @@ namespace QuadTree
         }
     }
 
+    /// <summary>
+    /// Used by the QuadTree to represent a rectangular area.
+    /// </summary>
     public struct Quad
     {
         public float MinX;
@@ -280,6 +362,13 @@ namespace QuadTree
         public float MaxX;
         public float MaxY;
 
+        /// <summary>
+        /// Construct a new Quad.
+        /// </summary>
+        /// <param name="minX">Minimum x.</param>
+        /// <param name="minY">Minimum y.</param>
+        /// <param name="maxX">Max x.</param>
+        /// <param name="maxY">Max y.</param>
         public Quad(float minX, float minY, float maxX, float maxY)
         {
             MinX = minX;
@@ -288,6 +377,13 @@ namespace QuadTree
             MaxY = maxY;
         }
 
+        /// <summary>
+        /// Set the Quad's position.
+        /// </summary>
+        /// <param name="minX">Minimum x.</param>
+        /// <param name="minY">Minimum y.</param>
+        /// <param name="maxX">Max x.</param>
+        /// <param name="maxY">Max y.</param>
         public void Set(float minX, float minY, float maxX, float maxY)
         {
             MinX = minX;
@@ -296,9 +392,20 @@ namespace QuadTree
             MaxY = maxY;
         }
 
+        /// <summary>
+        /// Check if this Quad intersects with another.
+        /// </summary>
         public bool Intersects(ref Quad other)
         {
             return MinX < other.MaxX && MinY < other.MaxY && MaxX > other.MinX && MaxY > other.MinY;
+        }
+
+        /// <summary>
+        /// Check if this Quad contains the point.
+        /// </summary>
+        public bool Contains(float x, float y)
+        {
+            return x > MinX && y > MinY && x < MaxX && y < MaxY;
         }
     }
 }
