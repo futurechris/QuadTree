@@ -152,6 +152,23 @@ namespace QuadTree
         }
 
         /// <summary>
+        /// Find all values overlapping the specified point.
+        /// </summary>
+        /// <returns>True if any values were found.</returns>
+        /// <param name="x">The x coordinate.</param>
+        /// <param name="y">The y coordinate.</param>
+        /// <param name="values">A list to populate with the results. If null, this function will create the list for you.</param>
+        public bool SearchPoint(float x, float y, ref List<T> values)
+        {
+            if (values != null)
+                values.Clear();
+            else
+                values = new List<T>();
+            root.SearchPoint(x, y, values);
+            return values.Count > 0;
+        }
+
+        /// <summary>
         /// Find all other values whose areas are overlapping the specified value.
         /// </summary>
         /// <returns>True if any collisions were found.</returns>
@@ -341,6 +358,17 @@ namespace QuadTree
                 for (int i = 0; i < 4; ++i)
                     if (Branches[i] != null)
                         Branches[i].SearchQuad(ref quad, values);
+            }
+
+            internal void SearchPoint(float x, float y, List<T> values)
+            {
+                if (Leaves.Count > 0)
+                    for (int i = 0; i < Leaves.Count; ++i)
+                        if (Leaves[i].Quad.Contains(x, y))
+                            values.Add(Leaves[i].Value);
+                for (int i = 0; i < 4; ++i)
+                    if (Branches[i] != null)
+                        Branches[i].SearchPoint(x, y, values);
             }
         }
 
