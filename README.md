@@ -1,6 +1,8 @@
 # QuadTree
 A C# QuadTree implementation specifically designed for testing AABB collisions in 2D space.
 
+![QuadTree Animation](quadtree.gif)
+
 ## What does it do?
 A [QuadTree](https://en.wikipedia.org/wiki/Quadtree) is a way of partitioning 2D space by recursively subdividing it into quads. This implementation allows you to insert rectangles into a QuadTree and check for collisions against them. Doing this can massively reduce collision checking time compared to having all your rectangles in a single list and checking for collision against each of them individually.
 
