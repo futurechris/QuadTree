@@ -295,38 +295,19 @@ namespace QuadTree
                 //If this branch is already split
                 if (Split)
                 {
-                    //Check which quadrants the leaf intersects with
-                    int index = -1;
                     for (int i = 0; i < 4; ++i)
                     {
-                        if (leaf.Quad.Intersects(ref Quads[i]))
+                        if (Quads[i].Contains(ref leaf.Quad))
                         {
-                            if (index < 0)
-                                index = i;
-                            else
-                            {
-                                //If it intersects with more than one quadrant, this branch owns it
-                                Leaves.Add(leaf);
-                                leaf.Branch = this;
-                                return;
-                            }
+                            if (Branches[i] == null)
+                                Branches[i] = CreateBranch(Tree, this, ref Quads[i]);
+                            Branches[i].Insert(leaf);
+                            return;
                         }
                     }
-                    if (index >= 0)
-                    {
-                        //If it intsersects with only one quadrant, that quadrant owns it
-                        if (Branches[index] == null)
-                            Branches[index] = CreateBranch(Tree, this, ref Quads[index]);
-                        Branches[index].Insert(leaf);
-                    }
-                    else
-                    {
-                        //If it intersects with nothing, return it to the pool
-                        leafPool.Push(leaf);
-                        Tree.leafLookup.Remove(leaf.Value);
-                        leaf.Branch = null;
-                        leaf.Value = default(T);
-                    }
+
+                    Leaves.Add(leaf);
+                    leaf.Branch = this;
                 }
                 else
                 {
@@ -426,6 +407,14 @@ namespace QuadTree
         public bool Intersects(ref Quad other)
         {
             return MinX < other.MaxX && MinY < other.MaxY && MaxX > other.MinX && MaxY > other.MinY;
+        }
+
+        /// <summary>
+        /// Check if this Quad can completely contain another.
+        /// </summary>
+        public bool Contains(ref Quad other)
+        {
+            return other.MinX >= MinX && other.MinY >= MinY && other.MaxX <= MaxX && other.MaxY <= MaxY;
         }
 
         /// <summary>
