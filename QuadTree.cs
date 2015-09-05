@@ -15,25 +15,29 @@ namespace QuadTree
 
         Branch root;
         internal int splitCount;
+		internal int depthLimit;
         internal Dictionary<T, Leaf> leafLookup = new Dictionary<T, Leaf>();
 
         /// <summary>
         /// Creates a new QuadTree.
         /// </summary>
         /// <param name="splitCount">How many leaves a branch can hold before it splits into sub-branches.</param>
+		/// <param name="depthLimit">Maximum distance a node can be from the tree root.</param>
         /// <param name="region">The region that your quadtree occupies, all inserted quads should fit into this.</param>
-        public QuadTree(int splitCount, ref Quad region)
+        public QuadTree(int splitCount, int depthLimit, ref Quad region)
         {
             this.splitCount = splitCount;
-            root = CreateBranch(this, null, ref region);
+			this.depthLimit = depthLimit;
+            root = CreateBranch(this, null, 0, ref region);
         }
         /// <summary>
         /// Creates a new QuadTree.
         /// </summary>
         /// <param name="splitCount">How many leaves a branch can hold before it splits into sub-branches.</param>
+		/// <param name="depthLimit">Maximum distance a node can be from the tree root.</param>
         /// <param name="region">The region that your quadtree occupies, all inserted quads should fit into this.</param>
-        public QuadTree(int splitCount, Quad region)
-            : this(splitCount, ref region)
+		public QuadTree(int splitCount, int depthLimit, Quad region)
+            : this(splitCount, depthLimit, ref region)
         {
 
         }
@@ -41,12 +45,13 @@ namespace QuadTree
         /// Creates a new QuadTree.
         /// </summary>
         /// <param name="splitCount">How many leaves a branch can hold before it splits into sub-branches.</param>
+		/// <param name="depthLimit">Maximum distance a node can be from the tree root.</param>
         /// <param name="x">X position of the region.</param>
         /// <param name="y">Y position of the region.</param>
         /// <param name="width">Width of the region.</param>
         /// <param name="height">Height of the region.</param>
-        public QuadTree(int splitCount, float x, float y, float width, float height)
-            : this(splitCount, new Quad(x, y, x + width, y + height))
+        public QuadTree(int splitCount, int depthLimit, float x, float y, float width, float height)
+            : this(splitCount, depthLimit, new Quad(x, y, x + width, y + height))
         {
 
         }
@@ -70,7 +75,6 @@ namespace QuadTree
         {
             branchPool = new Stack<Branch>();
             leafPool = new Stack<Leaf>();
-            Branch.tempPool = new Stack<List<Leaf>>();
         }
 
         /// <summary>
@@ -230,12 +234,13 @@ namespace QuadTree
                         CountBranches(branch.Branches[i], ref count);
         }
 
-        static Branch CreateBranch(QuadTree<T> tree, Branch parent, ref Quad quad)
+        static Branch CreateBranch(QuadTree<T> tree, Branch parent, int branchDepth, ref Quad quad)
         {
             var branch = branchPool.Count > 0 ? branchPool.Pop() : new Branch();
             branch.Tree = tree;
             branch.Parent = parent;
             branch.Split = false;
+			branch.Depth = branchDepth;
             float midX = quad.MinX + (quad.MaxX - quad.MinX) * 0.5f;
             float midY = quad.MinY + (quad.MaxY - quad.MinY) * 0.5f;
             branch.Quads[0].Set(quad.MinX, quad.MinY, midX, midY);
@@ -255,14 +260,13 @@ namespace QuadTree
 
         internal class Branch
         {
-            internal static Stack<List<Leaf>> tempPool = new Stack<List<Leaf>>();
-
             internal QuadTree<T> Tree;
             internal Branch Parent;
             internal Quad[] Quads = new Quad[4];
             internal Branch[] Branches = new Branch[4];
             internal List<Leaf> Leaves = new List<Leaf>();
             internal bool Split;
+			internal int Depth;
 
             internal void Clear()
             {
@@ -300,7 +304,7 @@ namespace QuadTree
                         if (Quads[i].Contains(ref leaf.Quad))
                         {
                             if (Branches[i] == null)
-                                Branches[i] = CreateBranch(Tree, this, ref Quads[i]);
+                                Branches[i] = CreateBranch(Tree, this, Depth+1, ref Quads[i]);
                             Branches[i].Insert(leaf);
                             return;
                         }
@@ -316,16 +320,9 @@ namespace QuadTree
                     leaf.Branch = this;
 
                     //Once I have reached capacity, split the node
-                    if (Leaves.Count >= Tree.splitCount)
+                    if (Leaves.Count >= Tree.splitCount && Depth < Tree.depthLimit)
                     {
-                        var temp = tempPool.Count > 0 ? tempPool.Pop() : new List<Leaf>();
-                        temp.AddRange(Leaves);
-                        Leaves.Clear();
                         Split = true;
-                        for (int i = 0; i < temp.Count; ++i)
-                            Insert(temp[i]);
-                        temp.Clear();
-                        tempPool.Push(temp);
                     }
                 }
             }
